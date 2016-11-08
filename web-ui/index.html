@@ -19,29 +19,30 @@
             s10 offset-s1">
             <div class="card-panel">
               <div class="row">
-                <form>
+                <h3>JOIN US</h3>
+                <form id="join-form">
                   <div class="input-field col s12">
-                    <input id="name" type="text" class="validate">
+                    <input id="name" type="text" class="validate" v-model="name.data">
                     <label for="name" required>Name</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="department" type="text" class="validate">
+                    <input id="department" type="text" class="validate" v-model="department.data">
                     <label for="department">Department</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="stu_number" type="text" class="validate">
+                    <input id="stu_number" type="text" class="validate" v-model="stu_number.data">
                     <label for="stu_number">Student Number</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="phone" type="tel" class="validate">
+                    <input id="phone" type="tel" class="validate" v-model="phone.data">
                     <label for="phone">Phone</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="email" type="email" class="validate">
+                    <input id="email" type="email" class="validate" v-model="email.data">
                     <label for="email">Email</label>
                   </div>
                   <div class="input-field col s12">
-                    <select name="team" required>
+                    <select name="team" required v-model="team.data">
                       <option value="" disabled selected>Choose your prefered team</option>
                       <option value="devOps">DevOps Team</option>
                       <option value="organizer">Organizer Team</option>
@@ -50,15 +51,21 @@
                     </select>
                     <label>Team</label>
                   </div>
-                  <div class="input-field col s12">
-                    <div class="col s6">
-                      <input name="gender" type="radio" id="female" />
+                  <div class="row">
+                    <div class="col s4">
+                      <input name="gender" type="radio" id="female" v-model="gender.data" value="female"/>
                       <label for="female">Female</label>
                     </div>
-                    <div class="col s6">
-                      <input name="gender" type="radio" id="male" />
+                    <div class="col s4">
+                      <input name="gender" type="radio" id="male"  v-model="gender.data" value="male"/>
                       <label for="male">Male</label>
                     </div>
+                  </div>
+                  <div class="right-align">
+                    <button class="btn waves-effect waves-light" type="submit" name="action" @click.prevent="submit">
+                      <i class="material-icons right">send</i>
+                      Submit
+                    </button>
                   </div>
                 </form>
               </div>
@@ -75,11 +82,38 @@
       </div>
     </footer>
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script>
+      function inputObject() {
+        return {
+          data: '',
+          error: '',
+        };
+      }
+      "use strict";
+      var form = new Vue({
+        el: '#join-form',
+        data: {
+          name: inputObject(),
+          department: inputObject(),
+          stu_number: inputObject(),
+          phone: inputObject(),
+          email: inputObject(),
+          gender: inputObject(),
+          team: inputObject(),
+        },
+        methods: {
+          submit: function () {
+            console.log(this.$data);
+          },
+        }
+      });
+    </script>
 
     <!-- NOTE: jquery before materialize -->
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
     <script>
+      "use strict";
       // Initiate select
       $(document).ready(function() {
         $('select').material_select();
