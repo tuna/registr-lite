@@ -22,23 +22,23 @@
                 <h3>JOIN US</h3>
                 <form id="join-form">
                   <div class="input-field col s12">
-                    <input id="name" type="text" class="validate" v-model="name.data">
+                    <input id="name" type="text" v-model="name.data" @focusout="validate('name')">
                     <label for="name" required>Name</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="department" type="text" class="validate" v-model="department.data">
+                    <input id="department" type="text" v-model="department.data" @focusout="validate('department')">
                     <label for="department">Department</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="stu_number" type="text" class="validate" v-model="stu_number.data">
+                    <input id="stu_number" type="text" v-model="stu_number.data" @focusout="validate('stu_number')">
                     <label for="stu_number">Student Number</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="phone" type="tel" class="validate" v-model="phone.data">
+                    <input id="phone" type="tel" v-model="phone.data" @focusout="validate('phone')">
                     <label for="phone">Phone</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="email" type="email" class="validate" v-model="email.data">
+                    <input id="email" type="email" v-model="email.data" @focusout="validate('email')">
                     <label for="email">Email</label>
                   </div>
                   <div class="input-field col s12">
