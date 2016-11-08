@@ -103,13 +103,13 @@
     <!-- comment out following disable email validator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/validate.js/0.11.1/validate.min.js"></script>
     <script>
+      "use strict";
       function inputObject() {
         return {
           data: '',
           error: '',
         };
       }
-      "use strict";
       var form = new Vue({
         el: '#join-form',
         data: {
