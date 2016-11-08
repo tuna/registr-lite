@@ -132,9 +132,17 @@
               $.post('http://localhost:8080/candidate',
                   _.mapObject(this.$data, function(value) {if (value.data) return value.data;}))
                 .done(function() {
-                  $.extend(form.$data, emptyForm);
+                  // clean up
+                  $.each(form.$data, function(key, value) {
+                    value.data = '';
+                    value.error = '';
+                    Vue.nextTick(Materialize.updateTextFields);
+                  });
+                  Materialize.toast('Success!', 4000);
                 })
-                .fail(function() {
+                .fail(function(data) {
+                  console.log(data);
+                  Materialize.toast('Failed...', 4000);
                 });
             }
           },
