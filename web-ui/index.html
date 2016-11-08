@@ -21,7 +21,7 @@
             <div class="row">
               <div class="input-field col s12">
                 <input id="name" type="text" class="validate">
-                <label for="name">Name</label>
+                <label for="name" required>Name</label>
               </div>
               <div class="input-field col s12">
                 <input id="department" type="text" class="validate">
@@ -32,15 +32,15 @@
                 <label for="stu_number">Student Number</label>
               </div>
               <div class="input-field col s12">
-                <input id="phone" type="text" class="validate">
+                <input id="phone" type="tel" class="validate">
                 <label for="phone">Phone</label>
               </div>
               <div class="input-field col s12">
-                <input id="email" type="text" class="validate">
+                <input id="email" type="email" class="validate">
                 <label for="email">Email</label>
               </div>
               <div class="input-field col s12">
-                <select name="team">
+                <select name="team" required>
                   <option value="" disabled selected>Choose your prefered team</option>
                   <option value="devOps">DevOps Team</option>
                   <option value="organizer">Organizer Team</option>
