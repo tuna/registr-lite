@@ -51,14 +51,17 @@
                     </select>
                     <label>Team</label>
                   </div>
-                  <div class="row">
-                    <div class="col s4">
-                      <input name="gender" type="radio" id="female" v-model="gender.data" value="female"/>
-                      <label for="female">Female</label>
-                    </div>
-                    <div class="col s4">
-                      <input name="gender" type="radio" id="male"  v-model="gender.data" value="male"/>
-                      <label for="male">Male</label>
+                  <div class="input-field col s12">
+                    <label class="active">Gender</label>
+                    <div class="row">
+                      <div class="col s4">
+                        <input name="gender" type="radio" id="female" v-model="gender.data" value="female"/>
+                        <label for="female">Female</label>
+                      </div>
+                      <div class="col s4">
+                        <input name="gender" type="radio" id="male"  v-model="gender.data" value="male"/>
+                        <label for="male">Male</label>
+                      </div>
                     </div>
                   </div>
                   <div class="right-align">
