@@ -23,7 +23,7 @@
                 <form id="join-form">
                   <div class="input-field col s12">
                     <input id="name" type="text" v-model="name.data" @focusout="validate('name')" :class="name.error ? 'invalid' : '' ">
-                    <label for="name" required>Name</label>
+                    <label for="name">Name</label>
                   </div>
                   <div class="input-field col s12">
                     <input id="department" type="text" v-model="department.data" @focusout="validate('department')" :class="department.error ? 'invalid' : '' ">
