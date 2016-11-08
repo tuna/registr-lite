@@ -1,12 +1,86 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <!-- materialize -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
-    </head>
-    <body>
-        <script src="https://unpkg.com/vue/dist/vue.js"></script>
-    </body>
+  <head>
+    <meta charset="utf-8">
+    <!-- Google Icon Font -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- materialize -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+    <!-- responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  </head>
+  <body>
+    <main>
+      <div class="container">
+        <div class="row">
+          <div class="col
+            l4 offset-l4
+            m8 offset-m2
+            s10 offset-m1">
+            <div class="row">
+              <div class="input-field col s12">
+                <input id="name" type="text" class="validate">
+                <label for="name">Name</label>
+              </div>
+              <div class="input-field col s12">
+                <input id="department" type="text" class="validate">
+                <label for="department">Department</label>
+              </div>
+              <div class="input-field col s12">
+                <input id="stu_number" type="text" class="validate">
+                <label for="stu_number">Student Number</label>
+              </div>
+              <div class="input-field col s12">
+                <input id="phone" type="text" class="validate">
+                <label for="phone">Phone</label>
+              </div>
+              <div class="input-field col s12">
+                <input id="email" type="text" class="validate">
+                <label for="email">Email</label>
+              </div>
+              <div class="input-field col s12">
+                <select name="team">
+                  <option value="" disabled selected>Choose your prefered team</option>
+                  <option value="devOps">DevOps Team</option>
+                  <option value="organizer">Organizer Team</option>
+                  <option value="publicity">Publicity Team</option>
+                  <option value="jiangyou">Jiangyou Team</option>
+                </select>
+                <label>Team</label>
+              </div>
+              <div class="input-field col s12">
+                <div class="col s6">
+                  <input name="gender" type="radio" id="female" />
+                  <label for="female">Female</label>
+                </div>
+                <div class="col s6">
+                  <input name="gender" type="radio" id="male" />
+                  <label for="male">Male</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="page-footer">
+      <div class="footer-copyright">
+        <div class="container">
+          © 清华大学技术宅网络与开源软件协会 Tsinghua University TUNA Association
+        </div>
+      </div>
+    </footer>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+
+    <!-- NOTE: jquery before materialize -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
+    <script>
+      // Initiate select
+      $(document).ready(function() {
+        $('select').material_select();
+      });
+    </script>
+  </body>
 </html>
