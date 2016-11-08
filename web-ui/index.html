@@ -22,23 +22,23 @@
                 <h3>JOIN US</h3>
                 <form id="join-form">
                   <div class="input-field col s12">
-                    <input id="name" type="text" v-model="name.data" @focusout="validate('name')">
+                    <input id="name" type="text" v-model="name.data" @focusout="validate('name')" :class="name.error ? 'invalid' : '' ">
                     <label for="name" required>Name</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="department" type="text" v-model="department.data" @focusout="validate('department')">
+                    <input id="department" type="text" v-model="department.data" @focusout="validate('department')" :class="department.error ? 'invalid' : '' ">
                     <label for="department">Department</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="stu_number" type="text" v-model="stu_number.data" @focusout="validate('stu_number')">
+                    <input id="stu_number" type="text" v-model="stu_number.data" @focusout="validate('stu_number')" :class="stu_number.error ? 'invalid' : '' ">
                     <label for="stu_number">Student Number</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="phone" type="tel" v-model="phone.data" @focusout="validate('phone')">
+                    <input id="phone" type="tel" v-model="phone.data" @focusout="validate('phone')" :class="phone.error ? 'invalid' : '' ">
                     <label for="phone">Phone</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="email" type="email" v-model="email.data" @focusout="validate('email')">
+                    <input id="email" type="email" v-model="email.data" @focusout="validate('email')" :class="email.error ? 'invalid' : '' ">
                     <label for="email">Email</label>
                   </div>
                   <div class="input-field col s12">
