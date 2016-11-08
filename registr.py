@@ -28,6 +28,8 @@ class Candidate(EveMixin, Base):
     phone = Column(String(16), nullable=True)
     email = Column(String(120), nullable=True)
     gender = Column(Enum('female', 'male'), nullable=True)
+    team = Column(Enum('DevOps', 'Organizer', 'Publicity', 'Jiangyou'),
+                  nullable=True)
 
 
 def create_app():
