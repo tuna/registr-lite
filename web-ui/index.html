@@ -96,6 +96,12 @@
       </div>
     </footer>
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <!-- google's libphonenumber -->
+    <!-- comment out following disable phone number validator-->
+    <script src="https://cdn.rawgit.com/jackocnr/intl-tel-input/master/build/js/utils.js"></script>
+    <!-- validate.js for email -->
+    <!-- comment out following disable email validator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/validate.js/0.11.1/validate.min.js"></script>
     <script>
       function inputObject() {
         return {
@@ -116,8 +122,65 @@
           team: inputObject(),
         },
         methods: {
-          submit: function () {
+          submit: function() {
             console.log(this.$data);
+          },
+          validate: function(fieldName) {
+            // validate given field `fieldName`.
+            // if argument is omitted, all field will be checked.
+            var hasError = false;
+            if (!fieldName || fieldName === 'name') {
+              if (!this.name.data) {
+                this.name.error = 'name is missing';
+                hasError = true;
+              } else if (this.name.data.length > 32) {
+                this.name.error = 'name is too long';
+                hasError = true;
+              } else {
+                this.name.error = '';
+              }
+            }
+            if (!fieldName || fieldName === 'department') {
+              if (this.department.data.length > 128) {
+                this.department.error = 'name of department is too long';
+                hasError = true;
+              } else {
+                this.department.error = '';
+              }
+            }
+            if (!fieldName || fieldName === 'stu_number') {
+              if (this.stu_number.data.length > 16) {
+                this.stu_number.error = 'student number is too long';
+                hasError = true;
+              } else {
+                this.stu_number.error = '';
+              }
+            }
+            if (!fieldName || fieldName === 'phone') {
+              if (this.phone.data && intlTelInputUtils && intlTelInputUtils.isValidNumber) {
+                if (intlTelInputUtils.isValidNumber(this.phone.data, 'CN')) {
+                  this.phone.error = '';
+                } else {
+                  this.phone.error = 'invalid phone number';
+                  hasError = true;
+                }
+              } else {
+                this.phone.error = '';
+              }
+            }
+            if (!fieldName || fieldName === 'email') {
+              if (this.email.data && validate) {
+                if (validate(this.email, {data: {email: true}})) {
+                  // Not valid
+                  this.email.error = 'invalid email address';
+                  hasError = true;
+                } else {
+                  this.email.error = '';
+                }
+              } else {
+                this.email.error = '';
+              }
+            }
           },
         }
       });
