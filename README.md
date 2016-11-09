@@ -27,3 +27,7 @@ A lightweight registr with only a bare RESTful API.
 ```
 
 That's all.
+
+## TODO
+
+* [ ] i18n
