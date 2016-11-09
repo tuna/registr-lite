@@ -1,4 +1,5 @@
 from eve import Eve
+from eve.auth import BasicAuth as _BasicAuth
 from eve_sqlalchemy import SQL
 from eve_sqlalchemy.decorators import registerSchema
 from sqlalchemy.ext.declarative import declarative_base
@@ -30,6 +31,11 @@ class Candidate(EveMixin, Base):
     gender = Column(Enum('female', 'male'), nullable=True)
     team = Column(Enum('devOps', 'organizer', 'publicity', 'jiangyou'),
                   nullable=True)
+
+
+class BasicAuth(_BasicAuth):
+    def check_auth(self, username, password, allowed_roles, resource, method):
+        return username == 'tunar' and password == 'thiSiSsecreT'
 
 
 def create_app():
@@ -67,7 +73,7 @@ def create_app():
         IF_MATCH=False,
     )
 
-    app = Eve(settings=settings, data=SQL)
+    app = Eve(settings=settings, data=SQL, auth=BasicAuth)
 
     # bind SQLAlchemy
     app.data.driver.Model = Base
