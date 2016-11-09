@@ -23,7 +23,7 @@ A lightweight registr with only a bare RESTful API.
 
 ```
 ~> http localhost:8080/candidate name='tunar'
-~> http localhost:8080/candidate
+~> http -a tunar:thiSiSsecreT localhost:8080/candidate
 ```
 
 That's all.
