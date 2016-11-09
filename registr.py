@@ -1,3 +1,5 @@
+import os
+from flask import current_app
 from eve import Eve
 from eve.auth import BasicAuth as _BasicAuth
 from eve_sqlalchemy import SQL
@@ -35,7 +37,8 @@ class Candidate(EveMixin, Base):
 
 class BasicAuth(_BasicAuth):
     def check_auth(self, username, password, allowed_roles, resource, method):
-        return username == 'tunar' and password == 'thiSiSsecreT'
+        return username == current_app.config['AUTH_USER'] and \
+            password == current_app.config['AUTH_PASS']
 
 
 def create_app():
@@ -43,9 +46,8 @@ def create_app():
     return a WSGI app
     '''
 
-    # TODO: retrieve configuration from environment variables
+    # Default configuration suitable for development
     settings = dict(
-        # For development
         DEBUG=True,
 
         DOMAIN={
@@ -74,6 +76,20 @@ def create_app():
         # Disable concurrency control
         IF_MATCH=False,
     )
+
+    # retrieve configurations from environment variables
+    # Following environ is read:
+    # NO_DEBUG
+    # DB_URI
+    # AUTH_USER
+    # AUTH_PASS
+    if os.environ.get('NO_DEBUG'):
+        settings['DEBUG'] = False
+    db_uri = os.environ.get('DB_URI')
+    if db_uri is not None:
+        settings['SQLALCHEMY_DATABASE_URI'] = db_uri
+    settings['AUTH_USER'] = os.environ.get('AUTH_USER', 'tunar')
+    settings['AUTH_PASS'] = os.environ.get('AUTH_PASS', 'thiSiSsecreT')
 
     app = Eve(settings=settings, data=SQL, auth=BasicAuth)
 
