@@ -49,7 +49,9 @@ def create_app():
         DEBUG=True,
 
         DOMAIN={
-            'candidate': Candidate._eve_schema['candidate']
+            'candidate': {**Candidate._eve_schema['candidate'], **{
+                'public_methods': ['POST'],  # Creating is public
+            }}
         },
 
         RESOURCE_METHODS=['GET', 'POST'],
