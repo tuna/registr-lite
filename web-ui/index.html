@@ -27,7 +27,7 @@
                     <label for="name">Name</label>
                   </div>
                   <div class="input-field col s12">
-                    <input id="department" type="text" v-model="department.data" @focusout="validate('department')" :class="department.error ? 'invalid' : '' ">
+                    <input id="department" type="text" v-model.lazy="department.data" @focusout="validate('department')" :class="department.error ? 'invalid' : '' ">
                     <label for="department">Department</label>
                   </div>
                   <div class="input-field col s12">
@@ -104,113 +104,125 @@
     <!-- comment out following disable email validator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/validate.js/0.11.1/validate.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <!-- NOTE: jquery before materialize -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script>
-      "use strict";
-      function inputObject() {
-        return {
-          data: '',
-          error: '',
-        };
-      }
-      function emptyForm() {
-        return {
-          name: inputObject(),
-          department: inputObject(),
-          stu_number: inputObject(),
-          phone: inputObject(),
-          email: inputObject(),
-          gender: inputObject(),
-          team: inputObject(),
-        };
-      }
-      var form = new Vue({
-        el: '#join-form',
-        data: emptyForm(),
-        methods: {
-          submit: function() {
-            if (this.validate()) {
-              // materialize depend on jQuery, so using it is harmless.
-              $.post('http://localhost:8080/candidate',
-                  _.mapObject(this.$data, function(value) {if (value.data) return value.data;}))
-                .done(function() {
-                  // clean up
-                  $.each(form.$data, function(key, value) {
-                    value.data = '';
-                    value.error = '';
-                    Vue.nextTick(Materialize.updateTextFields);
+      $(document).ready(function() {
+        "use strict";
+        function inputObject() {
+          return {
+            data: '',
+            error: '',
+          };
+        }
+        function emptyForm() {
+          return {
+            name: inputObject(),
+            department: inputObject(),
+            stu_number: inputObject(),
+            phone: inputObject(),
+            email: inputObject(),
+            gender: inputObject(),
+            team: inputObject(),
+          };
+        }
+        var form = new Vue({
+          el: '#join-form',
+          data: emptyForm(),
+          methods: {
+            submit: function() {
+              if (this.validate()) {
+                // materialize depend on jQuery, so using it is harmless.
+                $.post('https://join.tuna.moe/rest/candidate',
+                    _.mapObject(this.$data, function(value) {if (value.data) return value.data;}))
+                  .done(function() {
+                    // clean up
+                    $.each(form.$data, function(key, value) {
+                      value.data = '';
+                      value.error = '';
+                      Vue.nextTick(Materialize.updateTextFields);
+                    });
+                    Materialize.toast('Success!', 4000);
+                  })
+                  .fail(function(data) {
+                    console.log(data);
+                    Materialize.toast('Failed...', 4000);
                   });
-                  Materialize.toast('Success!', 4000);
-                })
-                .fail(function(data) {
-                  console.log(data);
-                  Materialize.toast('Failed...', 4000);
-                });
-            }
-          },
-          validate: function(fieldName) {
-            // validate given field `fieldName`.
-            // if argument is omitted, all field will be checked.
-            var hasError = false;
-            if (!fieldName || fieldName === 'name') {
-              if (!this.name.data) {
-                this.name.error = 'name is missing';
-                hasError = true;
-              } else if (this.name.data.length > 32) {
-                this.name.error = 'name is too long';
-                hasError = true;
-              } else {
-                this.name.error = '';
               }
-            }
-            if (!fieldName || fieldName === 'department') {
-              if (this.department.data.length > 128) {
-                this.department.error = 'name of department is too long';
-                hasError = true;
-              } else {
-                this.department.error = '';
-              }
-            }
-            if (!fieldName || fieldName === 'stu_number') {
-              if (this.stu_number.data.length > 16) {
-                this.stu_number.error = 'student number is too long';
-                hasError = true;
-              } else {
-                this.stu_number.error = '';
-              }
-            }
-            if (!fieldName || fieldName === 'phone') {
-              if (this.phone.data && intlTelInputUtils && intlTelInputUtils.isValidNumber) {
-                if (intlTelInputUtils.isValidNumber(this.phone.data, 'CN')) {
-                  this.phone.error = '';
+            },
+            validate: function(fieldName) {
+              // validate given field `fieldName`.
+              // if argument is omitted, all field will be checked.
+              var hasError = false;
+              if (!fieldName || fieldName === 'name') {
+                if (!this.name.data) {
+                  this.name.error = 'name is missing';
+                  hasError = true;
+                } else if (this.name.data.length > 32) {
+                  this.name.error = 'name is too long';
+                  hasError = true;
                 } else {
-                  this.phone.error = 'invalid phone number';
-                  hasError = true;
+                  this.name.error = '';
                 }
-              } else {
-                this.phone.error = '';
               }
-            }
-            if (!fieldName || fieldName === 'email') {
-              if (this.email.data && validate) {
-                if (validate(this.email, {data: {email: true}})) {
-                  // Not valid
-                  this.email.error = 'invalid email address';
+              if (!fieldName || fieldName === 'department') {
+                if (this.department.data.length > 128) {
+                  this.department.error = 'name of department is too long';
                   hasError = true;
+                } else {
+                  this.department.error = '';
+                }
+              }
+              if (!fieldName || fieldName === 'stu_number') {
+                if (this.stu_number.data.length > 16) {
+                  this.stu_number.error = 'student number is too long';
+                  hasError = true;
+                } else {
+                  this.stu_number.error = '';
+                }
+              }
+              if (!fieldName || fieldName === 'phone') {
+                if (this.phone.data && intlTelInputUtils && intlTelInputUtils.isValidNumber) {
+                  if (intlTelInputUtils.isValidNumber(this.phone.data, 'CN')) {
+                    this.phone.error = '';
+                  } else {
+                    this.phone.error = 'invalid phone number';
+                    hasError = true;
+                  }
+                } else {
+                  this.phone.error = '';
+                }
+              }
+              if (!fieldName || fieldName === 'email') {
+                if (this.email.data && validate) {
+                  if (validate(this.email, {data: {email: true}})) {
+                    // Not valid
+                    this.email.error = 'invalid email address';
+                    hasError = true;
+                  } else {
+                    this.email.error = '';
+                  }
                 } else {
                   this.email.error = '';
                 }
-              } else {
-                this.email.error = '';
               }
-            }
-            return !hasError;
-          },
-        }
+              return !hasError;
+            },
+          }
+        });
+        // This is a quick fix for vue.js not listening on jQuery event,
+        // We will dispatch another native event when there is a jQuery event.
+        $('#department').change(function(e) {
+          if (e.originalEvent === undefined) { // this is a jQuery event
+            // Simulate native event
+            var nativeEvent = document.createEvent('Events');
+            nativeEvent.initEvent('change', true, false);
+            e.target.dispatchEvent(nativeEvent);
+          }
+        });
       });
     </script>
 
-    <!-- NOTE: jquery before materialize -->
-    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
     <script>
       "use strict";
