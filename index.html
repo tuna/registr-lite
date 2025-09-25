@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+
+<main style="display: none">
+  <div class="language-list">
+    <button data-lang="zh">中文</button>
+    <button data-lang="en">English</button>
+  </div>
+  <h1 class="text-zh">欢迎加入 TUNA！</h1>
+  <h1 class="text-en">Welcome to TUNA!</h1>
+
+  <div class="frame-base">
+    <div class="frame" id="email-frame">
+      <div class="error error-invalid">
+        <div class="hint text-zh">请填写合法的邮箱和称呼</div>
+        <div class="hint text-en">Please enter a valid email and nickname</div>
+      </div>
+
+      <div class="error error-dup">
+        <div class="hint text-zh">该邮箱已存在。请您更换一个邮箱，或者等待我们的邮件。</div>
+        <div class="hint text-en">This email is already registered. Please use another address or wait for our email.</div>
+      </div>
+
+      <div class="hint text-zh">请填写您的常用邮件地址：</div>
+      <div class="hint text-en">Please enter your commonly used email address:</div>
+
+      <input name="email" type="email" data-ph-zh="推荐使用学校邮箱" data-ph-en="Tsinghua email recommended" required>
+
+      <div class="next"><span class="next-inner">Next -></span></div>
+    </div>
+
+    <div class="frame" id="nickname-frame">
+      <div class="hint text-zh">我们应该如何称呼您？</div>
+      <div class="hint text-en">How should we address you?</div>
+
+      <input name="nickname" type="text" data-ph-zh="姓名 / 昵称" data-ph-en="Name / Nickname" required>
+
+      <div class="next"><span class="next-inner">Next -></span></div>
+    </div>
+
+    <div class="frame" id="extra-frame">
+      <div class="hint text-zh">请告诉我们一些额外信息吧！（选填）</div>
+      <div class="hint text-en">Please tell us more about you (optional):</div>
+
+      <input name="dept" type="text" data-ph-zh="院系 / 如您不是清华师生，您来自哪里？" data-ph-en="Department / Where are you from?">
+      <input name="studentId" type="text" data-ph-zh="学号 / 工号" data-ph-en="Student ID / Employee ID">
+
+      <div class="next"><span class="next-inner">Next -></span></div>
+    </div>
+
+    <div class="frame" id="success-frame">
+      <div class="success">
+        <div class="hint text-zh">感谢对 TUNA 的兴趣！我们将后续向您填入的邮箱发送邮件，介绍近期的活动日程，以及 TUNA 的各类群聊和宣传渠道。</div>
+        <div class="hint text-en">Thank you for your interest in TUNA! We will send an email to the address you provided, introducing our upcoming events and communication channels.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="script.js"></script>
