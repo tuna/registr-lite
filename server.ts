@@ -5,6 +5,7 @@ import index from "./index.html";
 // FIXME: assert database is sqlite
 
 const MASTER_TOKEN  = process.env.MASTER_TOKEN;
+console.log('Starting up');
 
 type Entry = {
   email: String,
@@ -20,6 +21,28 @@ async function register(entry: Entry) {
     VALUES (${entry.email}, ${entry.nickname}, ${entry.dept ?? null}, ${entry.studentId ?? null}, datetime('now', 'utc'))
   `;
 }
+
+/* DB Migration */
+await sql`
+CREATE TABLE IF NOT EXISTS _db_version (
+  version INTEGER PRIMARY KEY
+)`.simple();
+
+// Right now we don't care about versions
+
+await sql`
+CREATE TABLE IF NOT EXISTS entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  nickname TEXT NOT NULL,
+  dept TEXT,
+  studentId TEXT,
+  createdAt TEXT,
+
+  UNIQUE(email)
+)`.simple();
+
+console.log('Migration complete');
 
 Bun.serve({
   routes: {
@@ -61,25 +84,5 @@ Bun.serve({
   },
   development: process.env.ENV !== "production",
   port: parseInt(process.env.PORT ?? "3000"),
-  hostname: process.env.HOST ?? "localhost",
+  hostname: process.env.HOST ?? "127.0.0.1",
 });
-
-/* DB Migration */
-await sql`
-CREATE TABLE IF NOT EXISTS _db_version (
-  version INTEGER PRIMARY KEY
-)`.simple();
-
-// Right now we don't care about versions
-
-await sql`
-CREATE TABLE IF NOT EXISTS entries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT NOT NULL,
-  nickname TEXT NOT NULL,
-  dept TEXT,
-  studentId TEXT,
-  createdAt TEXT,
-
-  UNIQUE(email)
-)`.simple();
