@@ -1,7 +1,10 @@
 {
-  "dependencies": {},
+  "dependencies": {
+    "node-telegram-bot-api": "^0.67.0"
+  },
   "devDependencies": {
-    "@types/bun": "^1.2.22"
+    "@types/bun": "^1.2.22",
+    "@types/node-telegram-bot-api": "^0.64.13"
   },
   "name": "registr-lite-lite",
   "private": true,

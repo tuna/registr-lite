@@ -1,11 +1,29 @@
 import { sql, serve } from "bun";
 import { Database } from "bun:sqlite";
 import index from "./index.html";
+import TelegramBot from "node-telegram-bot-api";
 
 // FIXME: assert database is sqlite
 
 const MASTER_TOKEN  = process.env.MASTER_TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const GROUPS = (process.env.GROUPS ?? '').split(',').map(s => parseInt(s, 10));
 console.log('Starting up');
+
+// We're mostly sending, so no webhook
+const bot = BOT_TOKEN ? new TelegramBot(BOT_TOKEN, { polling: true }) : null;
+bot?.on('channel_post', (msg) => {
+  console.log(`Telegram Channel Post: ${msg.chat.id}: ${msg.text}`);
+})
+bot?.on('message', (msg) => {
+  console.log(`Telegram Message: ${msg.chat.id}: ${msg.text}`);
+});
+
+if (bot) {
+  for (const g of GROUPS) {
+    bot.sendMessage(g, 'Bot restarted');
+  }
+}
 
 type Entry = {
   email: String,
@@ -59,6 +77,25 @@ Bun.serve({
         } catch(e) {
           console.error(e);
           return new Response("Failed to register (maybe duplicate email?)", { status: 409 });
+        }
+
+        if (bot) {
+          for (const g of GROUPS) {
+            try {
+              bot.sendMessage(
+                g,
+                `New Registration:\n<strong>${payload.nickname}</strong>\n${payload.email}` +
+                (payload.dept ? `\nDepartment: ${payload.dept}` : '') +
+                (payload.studentId ? `\nStudent ID: ${payload.studentId}` : ''),
+                {
+                  parse_mode: 'HTML'
+                }
+              );
+            } catch(e) {
+              console.error(`Failed to send to TG group ${g}:`, e);
+              // Other than logging, silently ignore these errors.
+            }
+          }
         }
         return new Response("", { status: 204 });
       }
