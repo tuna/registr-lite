@@ -1,5 +1,5 @@
 import { sql } from "bun";
-import index from "./index.html";
+import index from "./frontend/index.html";
 import TelegramBot from "node-telegram-bot-api";
 import { runMigrations } from "./migrations";
 import config from "./configuration";
