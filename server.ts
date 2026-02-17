@@ -124,7 +124,12 @@ async function sendEmailToEntry(email: string): Promise<void> {
       to: email,
       subject: 'Registration Confirmation',
       text: emailContent,
-      html: emailContent.replace(/\n/g, '<br>'),
+      html: emailContent.replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;')
+                        .replace(/\n/g, '<br>'),
     });
 
     console.log(`Email sent to ${email}: ${info.messageId}`);

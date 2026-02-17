@@ -60,6 +60,10 @@ Features:
 #### Configuration Keys
 - `email`: Email content to send to new registrations
 - `trusted_domains`: Comma-separated list of domains for auto-emailing
+- `smtp_server`: SMTP server hostname (e.g., smtp.gmail.com)
+- `smtp_username`: SMTP authentication username
+- `smtp_password`: SMTP authentication password
+- `email_from`: Source email address for sent emails (may differ from smtp_username)
 
 ### 3. Administrative API
 
@@ -90,16 +94,28 @@ Features:
 
 When a user registers:
 1. Check if their email domain is in `trusted_domains` configuration
-2. If yes, send email content from `email` configuration
-3. Mark `emailed = 1` in database
-4. Email failure doesn't prevent registration
+2. If yes, send email via SMTP using configured settings
+3. Mark `emailed = 1` in database on successful send
+4. Email failure doesn't prevent registration (graceful degradation)
 
-#### Helper Function
+#### SMTP Configuration
+The system uses nodemailer to send emails with the following settings:
+- **Port**: 587 (standard STARTTLS port)
+- **Security**: STARTTLS enforced (`requireTLS: true`)
+- **Authentication**: Uses `smtp_username` and `smtp_password`
+- **From Address**: Uses `email_from` (can be different from username)
+
+If any SMTP configuration is missing, email sending is skipped with a warning log.
+
+#### Helper Functions
 ```typescript
 function extractDomain(email: string): string | null
+async function sendEmailToEntry(email: string): Promise<void>
+async function checkAndSendEmail(email: string): Promise<void>
 ```
-- Safely parses email domain
-- Returns null for invalid emails
+- `extractDomain`: Safely parses email domain, returns null for invalid emails
+- `sendEmailToEntry`: Sends email via SMTP with error handling
+- `checkAndSendEmail`: Checks trusted domains before attempting send
 
 ## Database Schema
 
@@ -148,17 +164,55 @@ All features have been tested:
 
 ## Usage Examples
 
+### Security Note
+**IMPORTANT**: SMTP credentials (especially `smtp_password`) should never be committed to version control. These sensitive values should be:
+- Set via the API endpoint as shown below
+- Stored only in the database (which should be excluded from version control via `.gitignore`)
+- Backed up securely
+- Rotated regularly following security best practices
+
+For production deployments, consider using:
+- Environment variables for initial setup
+- Secrets management systems (e.g., HashiCorp Vault, AWS Secrets Manager)
+- Encrypted database backups
+
 ### Set Configuration
 ```bash
+# Set email content
 curl -X POST http://localhost:3000/api/config \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"key": "email", "value": "Welcome to our service!"}'
 
+# Set trusted domains
 curl -X POST http://localhost:3000/api/config \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"key": "trusted_domains", "value": "tsinghua.edu.cn,pku.edu.cn"}'
+
+# Set SMTP server
+curl -X POST http://localhost:3000/api/config \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "smtp_server", "value": "smtp.gmail.com"}'
+
+# Set SMTP username
+curl -X POST http://localhost:3000/api/config \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "smtp_username", "value": "your-email@gmail.com"}'
+
+# Set SMTP password
+curl -X POST http://localhost:3000/api/config \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "smtp_password", "value": "your-app-password"}'
+
+# Set email from address
+curl -X POST http://localhost:3000/api/config \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "email_from", "value": "noreply@yourdomain.com"}'
 ```
 
 ### Register User
@@ -168,7 +222,7 @@ curl -X POST http://localhost:3000/api/register \
   -d '{"email": "student@tsinghua.edu.cn", "nickname": "Zhang Wei", "dept": "CS"}'
 ```
 
-For users with trusted domains (tsinghua.edu.cn, pku.edu.cn), an email will be sent automatically and `emailed` will be set to 1.
+For users with trusted domains (tsinghua.edu.cn, pku.edu.cn), an email will be sent automatically via SMTP and `emailed` will be set to 1.
 
 ## Implementation Notes
 
@@ -176,5 +230,8 @@ For users with trusted domains (tsinghua.edu.cn, pku.edu.cn), an email will be s
 - All database operations use parameterized queries (safe from SQL injection)
 - Configuration caching improves performance
 - Migration version tracking uses MAX(version) for reliability
-- Email sending is currently logged (TODO: implement actual SMTP)
+- SMTP uses STARTTLS on port 587 for secure email transmission
+- Email sending failures are logged but don't prevent registration
+- Incomplete SMTP configuration results in skipped emails with warning logs
 - Registration succeeds even if email sending fails (best-effort)
+- Email `from` address can differ from SMTP username (useful for services like Gmail)
