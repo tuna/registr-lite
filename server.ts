@@ -25,13 +25,13 @@ bot?.on('message', (msg) => {
   console.log(`Telegram Message: ${msg.chat.id}: ${msg.text}`);
 });
 
-async function get_bot_groups(): Promise<number[]> {
+async function getBotGroups(): Promise<number[]> {
   const groups = await config.load('bot_groups'); // Ensure config is loaded
   return groups ? groups.split(',').map(s => parseInt(s, 10)) : [];
 }
 
 if (bot) {
-  for (const g of await get_bot_groups()) {
+  for (const g of await getBotGroups()) {
     bot.sendMessage(g, 'Bot restarted');
   }
 }
@@ -117,7 +117,7 @@ Bun.serve({
         }
 
         if (bot) {
-          for (const g of await get_bot_groups()) {
+          for (const g of await getBotGroups()) {
             try {
               bot.sendMessage(
                 g,
