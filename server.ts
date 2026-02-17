@@ -71,8 +71,16 @@ async function register(entry: Entry) {
   console.log(`REG: ${JSON.stringify(entry)}`)
   await sql`
     INSERT INTO entries (email, nickname, dept, studentId, createdAt, emailed, archived)
-    VALUES (${entry.email}, ${entry.nickname}, ${entry.dept ?? null}, ${entry.studentId ?? null}, datetime('now', 'utc'), false, false)
+    VALUES (${entry.email}, ${entry.nickname}, ${entry.dept ?? null}, ${entry.studentId ?? null}, datetime('now', 'utc'), 0, 0)
   `;
+}
+
+function extractDomain(email: string): string | null {
+  const emailParts = email.split('@');
+  if (emailParts.length !== 2 || !emailParts[1]) {
+    return null;
+  }
+  return emailParts[1];
 }
 
 async function sendEmailToEntry(email: string): Promise<void> {
@@ -99,11 +107,10 @@ async function checkAndSendEmail(email: string): Promise<void> {
   }
 
   const trustedDomains = trustedDomainsStr.split(',').map(d => d.trim());
-  const emailParts = email.split('@');
-  if (emailParts.length !== 2 || !emailParts[1]) {
+  const emailDomain = extractDomain(email);
+  if (!emailDomain) {
     return;
   }
-  const emailDomain: string = emailParts[1];
 
   if (trustedDomains.includes(emailDomain)) {
     await sendEmailToEntry(email);
@@ -174,8 +181,8 @@ async function runMigrations(): Promise<void> {
     `.simple();
   } else {
     // _db_version exists, check current version
-    const versionResult = await sql`SELECT version FROM _db_version ORDER BY version DESC LIMIT 1`.values();
-    if (versionResult.length > 0) {
+    const versionResult = await sql`SELECT MAX(version) as max_version FROM _db_version`.values();
+    if (versionResult.length > 0 && versionResult[0][0] !== null) {
       currentVersion = versionResult[0][0] as number;
     }
     // Empty _db_version table = initial table already created, start from version 1
@@ -270,8 +277,8 @@ Bun.serve({
         }
 
         const payload: any = await req.json();
-        if(!payload.key || payload.value === undefined) {
-          return new Response("Missing key or value", { status: 400 });
+        if(!payload.key || !payload.value || payload.key.trim() === '' || payload.value.trim() === '') {
+          return new Response("Missing or empty key or value", { status: 400 });
         }
 
         try {
