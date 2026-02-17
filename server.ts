@@ -30,37 +30,172 @@ type Entry = {
   nickname: String,
   dept?: String,
   studentId?: String,
+  emailed?: boolean,
+  archived?: boolean,
 };
+
+class Configuration {
+  private cache: Map<string, string> = new Map();
+
+  async load(key: string): Promise<string | null> {
+    if (this.cache.has(key)) {
+      return this.cache.get(key)!;
+    }
+    
+    const result = await sql`SELECT value FROM configuration WHERE key = ${key}`.values();
+    if (result.length > 0) {
+      const value = result[0][0] as string;
+      this.cache.set(key, value);
+      return value;
+    }
+    return null;
+  }
+
+  async save(key: string, value: string): Promise<void> {
+    await sql`
+      INSERT INTO configuration (key, value)
+      VALUES (${key}, ${value})
+      ON CONFLICT(key) DO UPDATE SET value = ${value}
+    `;
+    this.cache.set(key, value);
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
+}
+
+const config = new Configuration();
 
 async function register(entry: Entry) {
   console.log(`REG: ${JSON.stringify(entry)}`)
   await sql`
-    INSERT INTO entries (email, nickname, dept, studentId, createdAt)
-    VALUES (${entry.email}, ${entry.nickname}, ${entry.dept ?? null}, ${entry.studentId ?? null}, datetime('now', 'utc'))
+    INSERT INTO entries (email, nickname, dept, studentId, createdAt, emailed, archived)
+    VALUES (${entry.email}, ${entry.nickname}, ${entry.dept ?? null}, ${entry.studentId ?? null}, datetime('now', 'utc'), false, false)
   `;
 }
 
+async function sendEmailToEntry(email: string): Promise<void> {
+  // Load email configuration
+  const emailContent = await config.load('email');
+  if (!emailContent) {
+    console.log('No email configuration found, skipping email');
+    return;
+  }
+
+  // TODO: Implement actual email sending
+  // For now, just log
+  console.log(`Would send email to ${email}:`);
+  console.log(emailContent);
+
+  // Mark as emailed
+  await sql`UPDATE entries SET emailed = true WHERE email = ${email}`;
+}
+
+async function checkAndSendEmail(email: string): Promise<void> {
+  const trustedDomainsStr = await config.load('trusted_domains');
+  if (!trustedDomainsStr) {
+    return;
+  }
+
+  const trustedDomains = trustedDomainsStr.split(',').map(d => d.trim());
+  const emailParts = email.split('@');
+  if (emailParts.length !== 2 || !emailParts[1]) {
+    return;
+  }
+  const emailDomain: string = emailParts[1];
+
+  if (trustedDomains.includes(emailDomain)) {
+    await sendEmailToEntry(email);
+  }
+}
+
 /* DB Migration */
-await sql`
-CREATE TABLE IF NOT EXISTS _db_version (
-  version INTEGER PRIMARY KEY
-)`.simple();
+type Migration = {
+  version: number;
+  up: () => Promise<void>;
+};
 
-// Right now we don't care about versions
+const migrations: Migration[] = [
+  {
+    version: 1,
+    up: async () => {
+      console.log('Running migration 1: Create initial entries table');
+      await sql`
+        CREATE TABLE IF NOT EXISTS entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL,
+          nickname TEXT NOT NULL,
+          dept TEXT,
+          studentId TEXT,
+          createdAt TEXT,
+          UNIQUE(email)
+        )
+      `.simple();
+    }
+  },
+  {
+    version: 2,
+    up: async () => {
+      console.log('Running migration 2: Add emailed and archived columns to entries');
+      await sql`ALTER TABLE entries ADD COLUMN emailed INTEGER DEFAULT 0`.simple();
+      await sql`ALTER TABLE entries ADD COLUMN archived INTEGER DEFAULT 0`.simple();
+    }
+  },
+  {
+    version: 3,
+    up: async () => {
+      console.log('Running migration 3: Create configuration table');
+      await sql`
+        CREATE TABLE IF NOT EXISTS configuration (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      `.simple();
+    }
+  }
+];
 
-await sql`
-CREATE TABLE IF NOT EXISTS entries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT NOT NULL,
-  nickname TEXT NOT NULL,
-  dept TEXT,
-  studentId TEXT,
-  createdAt TEXT,
+async function runMigrations(): Promise<void> {
+  // Check if _db_version table exists
+  const tables = await sql`
+    SELECT name FROM sqlite_master WHERE type='table' AND name='_db_version'
+  `.values();
 
-  UNIQUE(email)
-)`.simple();
+  let currentVersion = 0;
 
-console.log('Migration complete');
+  if (tables.length === 0) {
+    // Missing _db_version table = blank database
+    console.log('No _db_version table found, creating...');
+    await sql`
+      CREATE TABLE _db_version (
+        version INTEGER PRIMARY KEY
+      )
+    `.simple();
+  } else {
+    // _db_version exists, check current version
+    const versionResult = await sql`SELECT version FROM _db_version ORDER BY version DESC LIMIT 1`.values();
+    if (versionResult.length > 0) {
+      currentVersion = versionResult[0][0] as number;
+    }
+    // Empty _db_version table = initial table already created, start from version 1
+  }
+
+  console.log(`Current database version: ${currentVersion}`);
+
+  // Run migrations
+  for (const migration of migrations) {
+    if (migration.version > currentVersion) {
+      await migration.up();
+      await sql`INSERT INTO _db_version (version) VALUES (${migration.version})`;
+      console.log(`Migration ${migration.version} completed`);
+    }
+  }
+
+  console.log('All migrations complete');
+}
+
+await runMigrations();
 
 Bun.serve({
   routes: {
@@ -77,6 +212,14 @@ Bun.serve({
         } catch(e) {
           console.error(e);
           return new Response("Failed to register (maybe duplicate email?)", { status: 409 });
+        }
+
+        // Check and send email if from trusted domain
+        try {
+          await checkAndSendEmail(payload.email);
+        } catch(e) {
+          console.error('Failed to send email:', e);
+          // Don't fail registration if email fails
         }
 
         if (bot) {
@@ -116,6 +259,28 @@ Bun.serve({
           entries = await sql`SELECT * FROM entries ORDER BY createdAt DESC`;
 
         return Response.json(entries);
+      }
+    },
+
+    "/api/config": {
+      POST: async (req) => {
+        const auth = req.headers.get("Authorization");
+        if(!auth || auth !== `Bearer ${MASTER_TOKEN}`) {
+          return new Response("Mismatched Bearer token", { status: 401 });
+        }
+
+        const payload: any = await req.json();
+        if(!payload.key || payload.value === undefined) {
+          return new Response("Missing key or value", { status: 400 });
+        }
+
+        try {
+          await config.save(payload.key, payload.value);
+          return new Response("", { status: 204 });
+        } catch(e) {
+          console.error(e);
+          return new Response("Failed to save configuration", { status: 500 });
+        }
       }
     }
   },
