@@ -31,7 +31,7 @@ td, th {
   line-height: 20px;
 }
 
-td .material-symbols-outlined {
+.material-symbols-outlined {
   cursor: pointer;
   margin-right: 8px;
   font-size: 16px;
@@ -40,8 +40,30 @@ td .material-symbols-outlined {
   line-height: 24px;
   text-align: center;
   display: inline-block;
+  color: black;
 
-  &:hover {
+  &:hover:not(.disabled) {
     background-color: #DDD;
   }
+
+  &.disabled {
+    color: rgba(0,0,0,.3);
+    cursor: not-allowed;
+  }
+}
+
+tr.archived {
+  color: rgba(0,0,0,.3);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.spacer {
+  width: 1px;
+  height: 8px;
+  background-color: #CCC;
+  margin-right: 8px;
 }

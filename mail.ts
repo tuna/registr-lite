@@ -3,12 +3,12 @@ import type { Transporter } from "nodemailer";
 import config from "./configuration";
 import { sql } from "bun";
 
-export async function send(email: string): Promise<void> {
+export async function send(email: string): Promise<boolean> {
   // Load email configuration
   const emailContent = await config.load('email');
   if (!emailContent) {
     console.log('No email configuration found, skipping email');
-    return;
+    return false;
   }
 
   // Load SMTP configuration
@@ -20,7 +20,7 @@ export async function send(email: string): Promise<void> {
   if (!smtpServer || !smtpUsername || !smtpPassword || !emailFrom || emailFrom === '') {
     console.log('SMTP configuration incomplete, skipping email');
     console.log(`Missing: ${!smtpServer ? 'smtp_server ' : ''}${!smtpUsername ? 'smtp_username ' : ''}${!smtpPassword ? 'smtp_password ' : ''}${!emailFrom ? 'email_from' : ''}`);
-    return;
+    return false;
   }
 
   try {
@@ -51,9 +51,10 @@ export async function send(email: string): Promise<void> {
     });
 
     console.log(`Email sent to ${email}: ${info.messageId}`);
-
+    return true;
   } catch (error) {
     console.error(`Failed to send email to ${email}:`, error);
     // Don't throw - we don't want to fail the registration if email fails
+    return false;
   }
 }

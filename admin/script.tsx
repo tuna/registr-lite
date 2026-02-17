@@ -2,6 +2,7 @@ import { h, render } from 'preact';
 import htm from 'htm';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Temporal } from '@js-temporal/polyfill';
+import { Set } from 'immutable';
 
 const html = htm.bind(h);
 
@@ -47,6 +48,7 @@ function Main() {
   }, [token])
 
   const [showAll, setShowAll] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(Set.of());
 
   if (token === null) {
     return html`
@@ -56,9 +58,43 @@ function Main() {
   } else if (entries === null) {
     return html`<p>Loading...</p>`;
   }
-  const rendered = entries?.map(e => {
-    if (!showAll && e.archived) return null;
 
+  const doEmail = (id: number) => {
+    fetch('/api/mail', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ id }),
+    }).then(res => {
+      if(res.ok) {
+        refetch();
+      } else {
+        alert('Failed to send email');
+      }
+    });
+  };
+
+  const doArchive = (id: number, archived: boolean) => {
+    fetch('/api/archive', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ id, archived }),
+    }).then(res => {
+      if(res.ok) {
+        refetch();
+      } else {
+        alert('Failed to update archive status');
+      }
+    });
+  };
+
+  const visibles = showAll ? entries : entries.filter(e => !e.archived);
+  const rendered = visibles.map(e => {
     // Parse createdAt using Temporal API. If not specified, default timezone is UTC
     const createdAt = Temporal.Instant.from(e.createdAt + 'Z');
     // Render as ISO string
@@ -66,19 +102,27 @@ function Main() {
       timeZone: '+0800',
     });
 
-    const emailIcon = e.emailed ? 'mark_email_read' : 'drafts';
+    const emailIcon = e.emailed ? 'mark_email_read' : 'send';
     const emailBtn = html`<span class="material-symbols-outlined email" onClick=${() => {
-      console.log(`TODO: email ${e.id}`);
+      doEmail(e.id);
     }}>${emailIcon}</span>`;
 
     const archiveIcon = e.archived ? 'bookmark' : 'inventory_2';
     const archiveBtn = html`<span class="material-symbols-outlined archive" onClick=${() => {
-      console.log(`TODO: toggle archive ${e.id}`);
+      doArchive(e.id, !e.archived);
     }}>${archiveIcon}</span>`;
 
     return html`
-      <tr>
-        <td><input type="checkbox" /> ${e.id}</td>
+      <tr class=${e.archived ? 'archived' : ''}>
+        <td><input
+          type="checkbox"
+          checked=${selected.contains(e.id)}
+          onChange=${(ev: Event) => {
+            const checked = (ev.currentTarget as HTMLInputElement).checked;
+            setSelected(s => checked ? s.add(e.id) : s.remove(e.id));
+          }}
+        /></td>
+        <td>${e.id}</td>
         <td>${e.email}</td>
         <td>${e.nickname}</td>
         <td>${e.dept ?? ''}</td>
@@ -89,12 +133,48 @@ function Main() {
     `;
   });
 
+  const refreshBtn = html`<span class="material-symbols-outlined" onClick=${refetch}>refresh</span>`;
+  const disabled = selected.size === 0;
+  const sendAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''}" onClick=${() => {
+    Promise.all(selected.map(id => doEmail(id))).then(() => {
+      refetch();
+    });
+  }}>send</span>`;
+  const archiveAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''}" onClick=${() => {
+    Promise.all(selected.map(id => doArchive(id, true))).then(() => {
+      refetch();
+    });
+  }}>inventory_2</span>`;
+  const unarchiveAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''} " onClick=${() => {
+    Promise.all(selected.map(id => doArchive(id, false))).then(() => {
+      refetch();
+    });
+  }}>bookmark</span>`;
+  const logoutBtn = html`<span class="material-symbols-outlined" onClick=${() => {
+    localStorage.removeItem('token');
+    setToken(null);
+  }}>logout</span>`;
+
+  const allSelected = visibles.length === selected.size && visibles.length > 0;
+
   return html`
-    <button onClick=${refetch}>Refresh</button>
-    <label><input type="checkbox" checked=${showAll} onChange=${() => setShowAll(s => !s)} /> Show archived</label>
+    <div class="toolbar">
+      ${refreshBtn}${logoutBtn}
+      <span class="spacer"></span>
+      ${sendAllBtn}${archiveAllBtn}${unarchiveAllBtn}
+      <span class="spacer"></span>
+      <input id="showall" type="checkbox" checked=${showAll} onChange=${() => {
+        setShowAll(s => !s)
+        setSelected(Set.of());
+      }} /> <label for="showall">Show archived</label>
+    </div>
     <table>
       <thead>
         <tr>
+          <th><input type="checkbox" disabled=${visibles.length === 0} checked=${allSelected} onChange=${() => {
+            const checked = !allSelected;
+            setSelected(checked ? Set(visibles.map(e => e.id)) : Set());
+          }} /></th>
           <th>ID</th>
           <th>Email</th>
           <th>Nickname</th>

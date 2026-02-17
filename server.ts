@@ -33,10 +33,12 @@ if (bot) {
 }
 
 type Entry = {
+  id: number,
   email: String,
   nickname: String,
   dept?: String,
   studentId?: String,
+  createdAt: String,
   emailed?: number,
   archived?: number,
 };
@@ -57,9 +59,11 @@ function extractDomain(email: string): string | null {
   return emailParts[1];
 }
 
-async function mail(email: string): Promise<void> {
-  await send(email);
-  await sql`UPDATE entries SET emailed = 1 WHERE email = ${email}`;
+async function mail(email: string): Promise<boolean> {
+  const sent = await send(email);
+  if (sent)
+    await sql`UPDATE entries SET emailed = 1 WHERE email = ${email}`;
+  return sent;
 }
 
 async function automail(email: string): Promise<void> {
@@ -144,7 +148,18 @@ Bun.serve({
         else 
           entries = await sql`SELECT * FROM entries ORDER BY createdAt DESC`;
 
-        return Response.json(entries);
+        const mapped = entries.map(e => ({
+          id: e.id,
+          email: e.email,
+          nickname: e.nickname,
+          dept: e.dept,
+          studentId: e.studentId,
+          createdAt: e.createdAt,
+          emailed: e.emailed === 1,
+          archived: e.archived === 1,
+        }));
+
+        return Response.json(mapped);
       }
     },
 
@@ -195,22 +210,17 @@ Bun.serve({
         }
 
         const payload: any = await req.json();
-        if(!payload.id || typeof payload.id !== 'number') {
+        if(payload.id === undefined || typeof payload.id !== 'number') {
           return new Response("Missing or invalid entry id", { status: 400 });
         }
 
-        if(payload.archived !== undefined && typeof payload.archived !== 'boolean') {
+        if(payload.archived === undefined || typeof payload.archived !== 'boolean') {
           return new Response("archived must be a boolean", { status: 400 });
         }
 
         try {
-          // If archived is provided, set it explicitly; otherwise toggle
-          if(payload.archived !== undefined) {
-            const archivedValue = payload.archived ? 1 : 0;
-            await sql`UPDATE entries SET archived = ${archivedValue} WHERE id = ${payload.id}`;
-          } else {
-            await sql`UPDATE entries SET archived = 1 - archived WHERE id = ${payload.id}`;
-          }
+          const archivedValue = payload.archived ? 1 : 0;
+          await sql`UPDATE entries SET archived = ${archivedValue} WHERE id = ${payload.id}`;
           return new Response("", { status: 204 });
         } catch(e) {
           console.error(e);
@@ -219,7 +229,7 @@ Bun.serve({
       }
     },
 
-    "/api/send-email": {
+    "/api/mail": {
       POST: async (req) => {
         const auth = req.headers.get("Authorization");
         if(!auth || auth !== `Bearer ${MASTER_TOKEN}`) {
