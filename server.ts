@@ -30,8 +30,8 @@ type Entry = {
   nickname: String,
   dept?: String,
   studentId?: String,
-  emailed?: boolean,
-  archived?: boolean,
+  emailed?: number,
+  archived?: number,
 };
 
 class Configuration {
@@ -97,7 +97,7 @@ async function sendEmailToEntry(email: string): Promise<void> {
   console.log(emailContent);
 
   // Mark as emailed
-  await sql`UPDATE entries SET emailed = true WHERE email = ${email}`;
+  await sql`UPDATE entries SET emailed = 1 WHERE email = ${email}`;
 }
 
 async function checkAndSendEmail(email: string): Promise<void> {
@@ -277,7 +277,9 @@ Bun.serve({
         }
 
         const payload: any = await req.json();
-        if(!payload.key || !payload.value || payload.key.trim() === '' || payload.value.trim() === '') {
+        if(!payload.key || !payload.value || 
+           typeof payload.key !== 'string' || typeof payload.value !== 'string' ||
+           payload.key.trim() === '' || payload.value.trim() === '') {
           return new Response("Missing or empty key or value", { status: 400 });
         }
 
