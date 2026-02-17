@@ -2,6 +2,8 @@ import { sql, serve } from "bun";
 import { Database } from "bun:sqlite";
 import index from "./index.html";
 import TelegramBot from "node-telegram-bot-api";
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 
 // FIXME: assert database is sqlite
 
@@ -91,13 +93,48 @@ async function sendEmailToEntry(email: string): Promise<void> {
     return;
   }
 
-  // TODO: Implement actual email sending
-  // For now, just log
-  console.log(`Would send email to ${email}:`);
-  console.log(emailContent);
+  // Load SMTP configuration
+  const smtpServer = await config.load('smtp_server');
+  const smtpUsername = await config.load('smtp_username');
+  const smtpPassword = await config.load('smtp_password');
+  const emailFrom = await config.load('email_from');
 
-  // Mark as emailed
-  await sql`UPDATE entries SET emailed = 1 WHERE email = ${email}`;
+  if (!smtpServer || !smtpUsername || !smtpPassword || !emailFrom) {
+    console.log('SMTP configuration incomplete, skipping email');
+    console.log(`Missing: ${!smtpServer ? 'smtp_server ' : ''}${!smtpUsername ? 'smtp_username ' : ''}${!smtpPassword ? 'smtp_password ' : ''}${!emailFrom ? 'email_from' : ''}`);
+    return;
+  }
+
+  try {
+    // Create transporter with STARTTLS enforced
+    const transporter: Transporter = nodemailer.createTransport({
+      host: smtpServer,
+      port: 587, // Standard STARTTLS port
+      secure: false, // Use STARTTLS (not SSL)
+      requireTLS: true, // Enforce STARTTLS
+      auth: {
+        user: smtpUsername,
+        pass: smtpPassword,
+      },
+    });
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: emailFrom,
+      to: email,
+      subject: 'Registration Confirmation',
+      text: emailContent,
+      html: emailContent.replace(/\n/g, '<br>'),
+    });
+
+    console.log(`Email sent to ${email}: ${info.messageId}`);
+
+    // Mark as emailed
+    await sql`UPDATE entries SET emailed = 1 WHERE email = ${email}`;
+  } catch (error) {
+    console.error(`Failed to send email to ${email}:`, error);
+    // Don't throw - we don't want to fail the registration if email fails
+  }
 }
 
 async function checkAndSendEmail(email: string): Promise<void> {
