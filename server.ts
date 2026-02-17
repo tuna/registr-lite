@@ -183,6 +183,67 @@ Bun.serve({
           return new Response("Failed to fetch configuration", { status: 500 });
         }
       }
+    },
+
+    "/api/archive": {
+      POST: async (req) => {
+        const auth = req.headers.get("Authorization");
+        if(!auth || auth !== `Bearer ${MASTER_TOKEN}`) {
+          return new Response("Mismatched Bearer token", { status: 401 });
+        }
+
+        const payload: any = await req.json();
+        if(!payload.id || typeof payload.id !== 'number') {
+          return new Response("Missing or invalid entry id", { status: 400 });
+        }
+
+        if(payload.archived !== undefined && typeof payload.archived !== 'boolean') {
+          return new Response("archived must be a boolean", { status: 400 });
+        }
+
+        try {
+          // If archived is provided, set it explicitly; otherwise toggle
+          if(payload.archived !== undefined) {
+            const archivedValue = payload.archived ? 1 : 0;
+            await sql`UPDATE entries SET archived = ${archivedValue} WHERE id = ${payload.id}`;
+          } else {
+            await sql`UPDATE entries SET archived = 1 - archived WHERE id = ${payload.id}`;
+          }
+          return new Response("", { status: 204 });
+        } catch(e) {
+          console.error(e);
+          return new Response("Failed to update archived state", { status: 500 });
+        }
+      }
+    },
+
+    "/api/send-email": {
+      POST: async (req) => {
+        const auth = req.headers.get("Authorization");
+        if(!auth || auth !== `Bearer ${MASTER_TOKEN}`) {
+          return new Response("Mismatched Bearer token", { status: 401 });
+        }
+
+        const payload: any = await req.json();
+        if(!payload.id || typeof payload.id !== 'number') {
+          return new Response("Missing or invalid entry id", { status: 400 });
+        }
+
+        try {
+          // Get the entry by ID
+          const entries = await sql`SELECT email FROM entries WHERE id = ${payload.id}`;
+          if(entries.length === 0) {
+            return new Response("Entry not found", { status: 404 });
+          }
+
+          const email = entries[0].email;
+          await mail(email);
+          return new Response("", { status: 204 });
+        } catch(e) {
+          console.error(e);
+          return new Response("Failed to send email", { status: 500 });
+        }
+      }
     }
   },
   development: process.env.ENV !== "production",
