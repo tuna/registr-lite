@@ -1,5 +1,6 @@
 import { sql } from "bun";
 import index from "./frontend/index.html";
+import admin from "./admin/index.html";
 import TelegramBot from "node-telegram-bot-api";
 import { runMigrations } from "./migrations";
 import config from "./configuration";
@@ -84,6 +85,7 @@ await runMigrations();
 Bun.serve({
   routes: {
     "/": index,
+    "/admin": admin,
     "/api/register": {
       POST: async (req) => {
         // Parse JSON body

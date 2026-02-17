@@ -1,0 +1,47 @@
+@import url("https://fonts.thu.fail/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
+
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24
+}
+
+body {
+  margin: 0;
+  padding: 20px 40px;
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 20px 0;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #CCC;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+td .material-symbols-outlined {
+  cursor: pointer;
+  margin-right: 8px;
+  font-size: 16px;
+  height: 24px;
+  width: 24px;
+  line-height: 24px;
+  text-align: center;
+  display: inline-block;
+
+  &:hover {
+    background-color: #DDD;
+  }
+}
