@@ -94,6 +94,7 @@ function Main() {
   };
 
   const visibles = showAll ? entries : entries.filter(e => !e.archived);
+  const visibleSelected = visibles.filter(e => selected.contains(e.id));
   const rendered = visibles.map(e => {
     // Parse createdAt using Temporal API. If not specified, default timezone is UTC
     const createdAt = Temporal.Instant.from(e.createdAt + 'Z');
@@ -134,19 +135,19 @@ function Main() {
   });
 
   const refreshBtn = html`<span class="material-symbols-outlined" onClick=${refetch}>refresh</span>`;
-  const disabled = selected.size === 0;
+  const disabled = visibleSelected.length === 0;
   const sendAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''}" onClick=${() => {
-    Promise.all(selected.map(id => doEmail(id))).then(() => {
+    Promise.all(visibleSelected.map(e => doEmail(e.id))).then(() => {
       refetch();
     });
   }}>send</span>`;
   const archiveAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''}" onClick=${() => {
-    Promise.all(selected.map(id => doArchive(id, true))).then(() => {
+    Promise.all(visibleSelected.map(e => doArchive(e.id, true))).then(() => {
       refetch();
     });
   }}>inventory_2</span>`;
   const unarchiveAllBtn = html`<span class="material-symbols-outlined ${disabled ? 'disabled' : ''} " onClick=${() => {
-    Promise.all(selected.map(id => doArchive(id, false))).then(() => {
+    Promise.all(visibleSelected.map(e => doArchive(e.id, false))).then(() => {
       refetch();
     });
   }}>bookmark</span>`;
@@ -171,7 +172,6 @@ function Main() {
       <span class="spacer"></span>
       <input id="showall" type="checkbox" checked=${showAll} onChange=${() => {
         setShowAll(s => !s)
-        setSelected(Set.of());
       }} /> <label for="showall">Show archived</label>
     </div>
     <dialog id="config-dialog" onClick=${(e: Event) => {
