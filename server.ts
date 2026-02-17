@@ -9,11 +9,15 @@ import { send } from "./mail";
 
 const MASTER_TOKEN  = process.env.MASTER_TOKEN;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const GROUPS = (process.env.GROUPS ?? '').split(',').map(s => parseInt(s, 10));
+const BOT_GROUPS = (process.env.BOT_GROUPS ?? '').split(',').map(s => parseInt(s, 10));
+const BOT_SERVER = process.env.BOT_SERVER;
 console.log('Starting up');
 
 // We're mostly sending, so no webhook
-const bot = BOT_TOKEN ? new TelegramBot(BOT_TOKEN, { polling: true }) : null;
+const bot = BOT_TOKEN ? new TelegramBot(BOT_TOKEN, {
+  polling: true,
+  baseApiUrl: BOT_SERVER,
+}) : null;
 bot?.on('channel_post', (msg) => {
   console.log(`Telegram Channel Post: ${msg.chat.id}: ${msg.text}`);
 })
@@ -22,7 +26,7 @@ bot?.on('message', (msg) => {
 });
 
 if (bot) {
-  for (const g of GROUPS) {
+  for (const g of BOT_GROUPS) {
     bot.sendMessage(g, 'Bot restarted');
   }
 }
@@ -103,7 +107,7 @@ Bun.serve({
         }
 
         if (bot) {
-          for (const g of GROUPS) {
+          for (const g of BOT_GROUPS) {
             try {
               bot.sendMessage(
                 g,
