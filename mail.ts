@@ -6,7 +6,8 @@ import { sql } from "bun";
 export async function send(email: string): Promise<boolean> {
   // Load email configuration
   const emailContent = await config.load('email');
-  if (!emailContent) {
+  const emailTitle = await config.load('email_title');
+  if (!emailContent || !emailTitle) {
     console.log('No email configuration found, skipping email');
     return false;
   }
@@ -23,11 +24,19 @@ export async function send(email: string): Promise<boolean> {
     return false;
   }
 
+  const smptServerSplit = smtpServer.split(':');
+  if (smptServerSplit.length > 2) {
+    console.log('Invalid SMTP server configuration, skipping email');
+    return false;
+  }
+  const host = smptServerSplit[0];
+  const port = smptServerSplit.length === 2 ? parseInt(smptServerSplit[1]!) : 587; // Default to 587 for STARTTLS
+
   try {
     // Create transporter with STARTTLS enforced
     const transporter: Transporter = nodemailer.createTransport({
-      host: smtpServer,
-      port: 587, // Standard STARTTLS port
+      host: host,
+      port: port, // Standard STARTTLS port
       secure: false, // Use STARTTLS (not SSL)
       requireTLS: true, // Enforce STARTTLS
       auth: {
@@ -40,7 +49,7 @@ export async function send(email: string): Promise<boolean> {
     const info = await transporter.sendMail({
       from: emailFrom,
       to: email,
-      subject: 'Registration Confirmation',
+      subject: emailTitle,
       text: emailContent,
       html: emailContent.replace(/&/g, '&amp;')
                         .replace(/</g, '&lt;')

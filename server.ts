@@ -10,7 +10,6 @@ import { send } from "./mail";
 
 const MASTER_TOKEN  = process.env.MASTER_TOKEN;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const BOT_GROUPS = (process.env.BOT_GROUPS ?? '').split(',').map(s => parseInt(s, 10));
 const BOT_SERVER = process.env.BOT_SERVER;
 console.log('Starting up');
 
@@ -26,8 +25,13 @@ bot?.on('message', (msg) => {
   console.log(`Telegram Message: ${msg.chat.id}: ${msg.text}`);
 });
 
+async function get_bot_groups(): Promise<number[]> {
+  const groups = await config.load('bot_groups'); // Ensure config is loaded
+  return groups ? groups.split(',').map(s => parseInt(s, 10)) : [];
+}
+
 if (bot) {
-  for (const g of BOT_GROUPS) {
+  for (const g of await get_bot_groups()) {
     bot.sendMessage(g, 'Bot restarted');
   }
 }
@@ -113,7 +117,7 @@ Bun.serve({
         }
 
         if (bot) {
-          for (const g of BOT_GROUPS) {
+          for (const g of await get_bot_groups()) {
             try {
               bot.sendMessage(
                 g,

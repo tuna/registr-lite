@@ -154,12 +154,18 @@ function Main() {
     localStorage.removeItem('token');
     setToken(null);
   }}>logout</span>`;
+  const settingsBtn = html`<span class="material-symbols-outlined" onClick=${() => {
+    const dialog = document.getElementById('config-dialog') as HTMLDialogElement | null;
+    if (dialog) {
+      dialog.showModal();
+    }
+  }}>settings</span>`;
 
   const allSelected = visibles.length === selected.size && visibles.length > 0;
 
   return html`
     <div class="toolbar">
-      ${refreshBtn}${logoutBtn}
+      ${refreshBtn}${logoutBtn}${settingsBtn}
       <span class="spacer"></span>
       ${sendAllBtn}${archiveAllBtn}${unarchiveAllBtn}
       <span class="spacer"></span>
@@ -168,6 +174,15 @@ function Main() {
         setSelected(Set.of());
       }} /> <label for="showall">Show archived</label>
     </div>
+    <dialog id="config-dialog" onClick=${(e: Event) => {
+      if (e.target === e.currentTarget) {
+        (e.currentTarget as HTMLDialogElement).close();
+      }
+    }}>
+      <div class="dialog-inner">
+        <${Config} token=${token} />
+      </div>
+    </dialog>
     <table>
       <thead>
         <tr>
@@ -188,6 +203,90 @@ function Main() {
         ${rendered}
       </tbody>
     </table>
+  `;
+}
+
+function Config(props: { token: string }) {
+  const token = props.token;
+  const [allCfgs, setAllCfgs] = useState<{ key: string, value: string }[] | null>(null);
+  const refetch = useCallback(() => {
+    setAllCfgs(null);
+    if (!token) return;
+    fetch('/api/config', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'same-origin',
+    }).then(res => res.json()).then(setAllCfgs);
+  }, [token]);
+  
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  if (allCfgs === null) {
+    return html`<p>Loading...</p>`;
+  }
+
+  const update = (key: string) => {
+    const value = (document.querySelector(`[name="${key}"]`) as HTMLInputElement | null)?.value;
+    if (value === undefined || value === null)
+      throw new Error('Bad frontend dev!');
+
+    fetch('/api/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ key, value }),
+    }).then(res => {
+      if(res.ok) {
+        refetch();
+      } else {
+        alert('Failed to update configuration');
+      }
+    });
+  }
+
+  function getCfg(name: string): string {
+    if (!allCfgs) return '';
+    const cfg = allCfgs.find(c => c.key === name);
+    return cfg ? cfg.value : '';
+  }
+
+  return html`
+    <label>Bot Groups (comma separated):</label>
+    <input name="bot_groups" value=${getCfg('bot_groups')} type="text" />
+    <button onClick=${() => update('bot_groups')}>Update</button>
+
+    <label>Trusted Domains (comma separated):</label>
+    <input name="trusted_domains" value=${getCfg('trusted_domains')} type="text" />
+    <button onClick=${() => update('trusted_domains')}>Update</button>
+
+    <label>SMTP server</label>
+    <input name="smtp_server" value=${getCfg('smtp_server')} type="text" />
+    <button onClick=${() => update('smtp_server')}>Update</button>
+
+    <label>SMTP username</label>
+    <input name="smtp_username" value=${getCfg('smtp_username')} type="text" />
+    <button onClick=${() => update('smtp_username')}>Update</button>
+
+    <label>SMTP password</label>
+    <input name="smtp_password" value=${getCfg('smtp_password')} type="password" />
+    <button onClick=${() => update('smtp_password')}>Update</button>
+
+    <label>Email FROM</label>
+    <input name="email_from" value=${getCfg('email_from')} type="text" />
+    <button onClick=${() => update('email_from')}>Update</button>
+
+    <label>Email Title</label>
+    <input name="email_title" value=${getCfg('email_title')} type="text" />
+    <button onClick=${() => update('email_title')}>Update</button>
+
+    <label>Email Content</label>
+    <textarea name="email">${getCfg('email')}</textarea>
+    <button onClick=${() => update('email')}>Update</button>
   `;
 }
 

@@ -67,3 +67,35 @@ tr.archived {
   background-color: #CCC;
   margin-right: 8px;
 }
+
+#config-dialog label {
+  display: block;
+  font-size: 12px;
+  color: rgba(0,0,0,0.54);
+}
+
+#config-dialog {
+  border: none;
+  padding: 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.dialog-inner {
+  min-width: 300px;
+  padding: 20px;
+}
+
+#config-dialog input, #config-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#config-dialog button {
+  margin-bottom: 20px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+#config-dialog textarea {
+  height: 400px;
+}
