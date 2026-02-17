@@ -236,6 +236,8 @@ Bun.serve({
             return new Response("Entry not found", { status: 404 });
           }
 
+          // Send email and update emailed status
+          // The mail() function handles both sending and updating the emailed field
           const email = entries[0].email;
           await mail(email);
           return new Response("", { status: 204 });
