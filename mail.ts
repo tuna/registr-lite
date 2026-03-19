@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { marked } from "marked";
 import config from "./configuration";
-import { sql } from "bun";
+
+marked.use({ gfm: true, breaks: true });
 
 export async function send(email: string): Promise<boolean> {
   // Load email configuration
@@ -51,12 +53,7 @@ export async function send(email: string): Promise<boolean> {
       to: email,
       subject: emailTitle,
       text: emailContent,
-      html: emailContent.replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/"/g, '&quot;')
-                        .replace(/'/g, '&#39;')
-                        .replace(/\n/g, '<br>'),
+      html: await marked.parse(emailContent),
     });
 
     console.log(`Email sent to ${email}: ${info.messageId}`);
