@@ -67,11 +67,11 @@ function Main() {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ id }),
-    }).then(res => {
+    }).then(async res => {
       if(res.ok) {
         refetch();
       } else {
-        alert('Failed to send email');
+        alert(await res.text() || 'Failed to send email');
       }
     });
   };
@@ -287,6 +287,119 @@ function Config(props: { token: string }) {
     <label>Email Content</label>
     <textarea name="email">${getCfg('email')}</textarea>
     <button onClick=${() => update('email')}>Update</button>
+
+    <${EmlConfig} token=${token} value=${getCfg('email_eml')} onSaved=${refetch} />
+  `;
+}
+
+type EmlPreview = {
+  subject: string;
+  from: string;
+  html: string | null;
+  text: string;
+  attachments: { filename: string; contentType: string; size: number }[];
+};
+
+function EmlConfig(props: { token: string; value: string; onSaved: () => void }) {
+  const [value, setValue] = useState(props.value);
+  const [preview, setPreview] = useState<EmlPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [filename, setFilename] = useState('');
+
+  async function request(path: string, data: object) {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${props.token}` },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response;
+  }
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to process EML');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const showPreview = () => run(async () => {
+    setPreview(null);
+    const response = await request('/api/mail/preview', { value });
+    setPreview(await response.json());
+  });
+
+  const save = (nextValue: string) => run(async () => {
+    await request('/api/config', { key: 'email_eml', value: nextValue });
+    props.onSaved();
+  });
+
+  const upload = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    void run(async () => {
+      if (file.size > 10 * 1024 * 1024) throw new Error('EML file exceeds 10 MiB');
+      if (!file.size) throw new Error('EML file is empty');
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Could not read EML file'));
+        reader.readAsDataURL(file);
+      });
+      const nextValue = dataUrl.slice(dataUrl.indexOf(',') + 1);
+      setPreview(null);
+      const response = await request('/api/mail/preview', { value: nextValue });
+      setValue(nextValue);
+      setFilename(file.name);
+      setPreview(await response.json());
+    });
+  };
+
+  // The iframe has an opaque origin and no scripts, forms, popups, or external
+  // resources. Server-side sanitization also removes active HTML content.
+  const previewDocument = preview?.html == null ? '' : `<!doctype html><html><head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+    </head><body>${preview.html}</body></html>`;
+
+  return html`
+    <section class="eml-config">
+      <label for="email-eml-file">EML email (optional, up to 10 MiB)</label>
+      <p>Use an EML file instead of the email title and content above. Its subject and visible
+        sender are preserved; Email FROM is used as the SMTP envelope sender.</p>
+      <p>${props.value ? 'An EML email is configured.' : 'Using the text / Markdown email.'}
+        ${filename ? ` Selected: ${filename} (save to apply).` : ''}</p>
+      <input id="email-eml-file" type="file" accept=".eml,message/rfc822" disabled=${busy} onChange=${upload} />
+      <div class="eml-actions">
+        <button disabled=${busy || !value} onClick=${showPreview}>Preview EML</button>
+        <button disabled=${busy || !value || value === props.value} onClick=${() => save(value)}>Save EML</button>
+        <button disabled=${busy || !props.value} onClick=${() => save('')}>Remove EML / use text</button>
+      </div>
+      ${busy && html`<p role="status">Processing EML…</p>`}
+      ${error && html`<p class="eml-error" role="alert">${error}</p>`}
+      ${preview && html`
+        <div class="eml-preview">
+          <p><strong>Subject:</strong> ${preview.subject || '(none)'}</p>
+          <p><strong>From:</strong> ${preview.from || '(none)'}</p>
+          <p>Preview blocks external images and active content. Email clients may render it differently.</p>
+          ${preview.html !== null ? html`
+            <iframe title="EML content preview" sandbox="" referrerPolicy="no-referrer" srcDoc=${previewDocument}></iframe>
+          ` : html`<pre>${preview.text}</pre>`}
+          ${preview.attachments.length > 0 && html`
+            <p><strong>Attachments:</strong></p>
+            <ul>${preview.attachments.map(a => html`<li>${a.filename} (${a.contentType}, ${a.size} bytes)</li>`)}</ul>
+          `}
+        </div>
+      `}
+    </section>
   `;
 }
 

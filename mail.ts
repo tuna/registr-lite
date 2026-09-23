@@ -2,14 +2,19 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { marked } from "marked";
 import config from "./configuration";
+import { parseEml } from "./eml";
+import addressparser from "nodemailer/lib/addressparser";
 
 marked.use({ gfm: true, breaks: true });
 
 export async function send(email: string): Promise<boolean> {
   // Load email configuration
-  const emailContent = await config.load('email');
-  const emailTitle = await config.load('email_title');
-  if (!emailContent || !emailTitle) {
+  const eml = await config.load('email_eml');
+  // Invalid nonempty EML is an error, never a reason to send the fallback.
+  const raw = eml ? (await parseEml(eml)).raw : null;
+  const emailContent = raw ? null : await config.load('email');
+  const emailTitle = raw ? null : await config.load('email_title');
+  if (!raw && (!emailContent || !emailTitle)) {
     console.log('No email configuration found, skipping email');
     return false;
   }
@@ -35,6 +40,8 @@ export async function send(email: string): Promise<boolean> {
   const port = smptServerSplit.length === 2 ? parseInt(smptServerSplit[1]!) : 587; // Default to 587 for STARTTLS
 
   try {
+    const envelopeFrom = addressparser(emailFrom, { flatten: true })[0]?.address;
+    if (!envelopeFrom) throw new Error('Invalid email_from address');
     // Create transporter with STARTTLS enforced
     const transporter: Transporter = nodemailer.createTransport({
       host: host,
@@ -48,12 +55,15 @@ export async function send(email: string): Promise<boolean> {
     });
 
     // Send email
-    const info = await transporter.sendMail({
+    const info = await transporter.sendMail(raw ? {
+      raw,
+      envelope: { from: envelopeFrom, to: [email] },
+    } : {
       from: emailFrom,
       to: email,
-      subject: emailTitle,
-      text: emailContent,
-      html: await marked.parse(emailContent),
+      subject: emailTitle!,
+      text: emailContent!,
+      html: await marked.parse(emailContent!),
     });
 
     console.log(`Email sent to ${email}: ${info.messageId}`);

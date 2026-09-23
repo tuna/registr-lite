@@ -99,3 +99,35 @@ tr.archived {
 #config-dialog textarea {
   height: 400px;
 }
+
+.eml-config {
+  max-width: 750px;
+  border-top: 1px solid #CCC;
+  padding-top: 16px;
+}
+
+.eml-config p {
+  font-size: 13px;
+}
+
+.eml-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.eml-error {
+  color: #B00020;
+}
+
+.eml-preview iframe {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #CCC;
+  background: white;
+}
+
+.eml-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -5,6 +5,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { runMigrations } from "./migrations";
 import config from "./configuration";
 import { send } from "./mail";
+import { EmlError, parseEml, previewEml } from "./eml";
 
 // FIXME: assert database is sqlite
 
@@ -175,16 +176,20 @@ Bun.serve({
         }
 
         const payload: any = await req.json();
-        if(!payload.key || !payload.value || 
+        if(!payload ||
            typeof payload.key !== 'string' || typeof payload.value !== 'string' ||
-           payload.key.trim() === '' || payload.value.trim() === '') {
+           payload.key.trim() === '' || (payload.key !== 'email_eml' && payload.value.trim() === '')) {
           return new Response("Missing or empty key or value", { status: 400 });
         }
 
         try {
+          if (payload.key === 'email_eml' && payload.value !== '') {
+            await parseEml(payload.value);
+          }
           await config.save(payload.key, payload.value);
           return new Response("", { status: 204 });
         } catch(e) {
+          if (e instanceof EmlError) return new Response(e.message, { status: 400 });
           console.error(e);
           return new Response("Failed to save configuration", { status: 500 });
         }
@@ -202,6 +207,30 @@ Bun.serve({
         } catch(e) {
           console.error(e);
           return new Response("Failed to fetch configuration", { status: 500 });
+        }
+      }
+    },
+
+    "/api/mail/preview": {
+      POST: async (req) => {
+        const auth = req.headers.get("Authorization");
+        if (!auth || auth !== `Bearer ${MASTER_TOKEN}`) {
+          return new Response("Mismatched Bearer token", { status: 401 });
+        }
+        try {
+          const payload = await req.json();
+          if (!payload || typeof payload.value !== 'string') {
+            return new Response("Missing EML value", { status: 400 });
+          }
+          return Response.json(await previewEml(payload.value), {
+            headers: { 'Cache-Control': 'no-store' },
+          });
+        } catch (e) {
+          if (e instanceof EmlError || e instanceof SyntaxError) {
+            return new Response(e.message, { status: 400 });
+          }
+          console.error(e);
+          return new Response("Failed to preview EML", { status: 500 });
         }
       }
     },
@@ -255,9 +284,12 @@ Bun.serve({
           // Send email and update emailed status
           // The mail() function handles both sending and updating the emailed field
           const email = entries[0].email;
-          await mail(email);
+          if (!await mail(email)) {
+            return new Response("Email was not sent; check email and SMTP configuration", { status: 500 });
+          }
           return new Response("", { status: 204 });
         } catch(e) {
+          if (e instanceof EmlError) return new Response(e.message, { status: 400 });
           console.error(e);
           return new Response("Failed to send email", { status: 500 });
         }
